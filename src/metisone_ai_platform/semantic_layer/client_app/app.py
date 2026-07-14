@@ -6,6 +6,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
+from metisone_ai_platform.data_query import (
+    CubeRestDataQueryClient,
+    DataQueryOrchestrator,
+    DataQueryRequest,
+    OpenAIDataQueryPlanner,
+)
+from metisone_ai_platform.data_query.cube_client import DEFAULT_CUBE_API_BASE_URL
 from metisone_ai_platform.semantic_layer.client_app.llm_agent import (
     LocalLLMSemanticEditAgent,
 )
@@ -31,6 +38,13 @@ class LocalChatRequest(LocalCubesRequest):
     message: str
 
 
+class LocalDataQueryRequest(BaseModel):
+    cube_api_url: str = DEFAULT_CUBE_API_BASE_URL
+    cube_api_token: str | None = None
+    message: str
+    limit: int = 100
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="MetisOne Local Semantic Chat Client",
@@ -48,6 +62,7 @@ def create_app() -> FastAPI:
             "agent_mode": LLMPlannerFactory.mode_from_env(),
             "openai_model": LLMPlannerFactory.model_from_env(),
             "has_openai_api_key": LLMPlannerFactory.has_api_key(),
+            "cube_api_url": DEFAULT_CUBE_API_BASE_URL,
         }
 
     @app.post("/local-cubes")
@@ -76,6 +91,42 @@ def create_app() -> FastAPI:
             planner = LLMPlannerFactory.create()
             agent = LocalLLMSemanticEditAgent(planner=planner, mcp_client=mcp_client)
             return agent.handle(request.message)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    @app.post("/local-query")
+    def local_query(request: LocalDataQueryRequest) -> dict[str, Any]:
+        try:
+            client = CubeRestDataQueryClient(
+                base_url=request.cube_api_url,
+                api_token=request.cube_api_token,
+            )
+            orchestrator = DataQueryOrchestrator(
+                planner=OpenAIDataQueryPlanner(),
+                client=client,
+            )
+            response = orchestrator.ask(
+                DataQueryRequest(question=request.message, limit=request.limit)
+            )
+            if response.status == "error":
+                raise RuntimeError(response.error or "Data query failed.")
+            return {
+                "status": response.status,
+                "message": response.message,
+                "plan": {
+                    "cube_query": response.plan.cube_query.to_cube_payload()
+                    if response.plan
+                    else None,
+                    "response_hint": response.plan.response_hint if response.plan else None,
+                },
+                "result": {
+                    "rows": response.result.rows if response.result else [],
+                    "row_count": response.result.row_count if response.result else 0,
+                    "annotation": response.result.annotation if response.result else {},
+                },
+            }
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except Exception as exc:

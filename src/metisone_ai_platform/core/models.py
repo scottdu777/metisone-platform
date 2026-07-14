@@ -52,4 +52,3 @@ class QueryResponse:
     compiled_query: CompiledQuery | None = None
     result: QueryResult | None = None
     error: str | None = None
-# this is a test for git

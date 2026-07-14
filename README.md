@@ -12,6 +12,7 @@ Current modules:
 - PostgreSQL Data Provider
 - Native Semantic Provider
 - Cube Core Provider
+- Cube REST Data Query
 - Cube YAML Semantic Layer Editor
 - Local Semantic Chat Client
 - Semantic Layer MCP boundary
@@ -59,9 +60,53 @@ METISONE_CUBE_MODEL_DIR=/home/cody/metisone/model/cubes
 METISONE_SEMANTIC_EDIT_TOKEN=change-me
 METISONE_CUBE_COMPILE_COMMAND=
 METISONE_CUBE_COMPILE_CWD=/home/cody/metisone
+
+CUBE_API_BASE_URL=http://192.168.31.224:4000/cubejs-api/v1
+CUBE_API_TOKEN=
 ```
 
 `.env` and `sn.txt` are ignored by git. Do not commit API keys or tokens.
+
+## Natural Language Data Query
+
+MetisOne includes a first Cube REST data query layer in:
+
+```txt
+src/metisone_ai_platform/data_query/
+```
+
+It uses Cube REST `/v1/meta` to read semantic metadata, OpenAI to produce Cube
+REST `/v1/load` query JSON, a validator to reject unknown members and unsafe
+operators, and Cube REST `/v1/load` to return structured rows.
+
+In the Local Chat UI:
+
+```txt
+Send       -> semantic layer edit flow
+Query Data -> data query flow
+```
+
+Example question:
+
+```txt
+有没有一部叫 Academy Dinosaur 的电影？
+```
+
+Expected Cube query shape:
+
+```json
+{
+  "dimensions": ["film.title"],
+  "filters": [
+    {
+      "member": "film.title",
+      "operator": "equals",
+      "values": ["Academy Dinosaur"]
+    }
+  ],
+  "limit": 1
+}
+```
 
 If you are debugging the service on Ubuntu through VS Code Remote SSH, the
 default launch config uses:

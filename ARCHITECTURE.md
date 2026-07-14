@@ -72,12 +72,15 @@ update the relevant sections when architecture facts change.
 
 ## 2. Overall Architecture
 
-MetisOne currently has two main business flows:
+MetisOne currently has three main business flows:
 
 1. **Natural language data query flow**: converts a user question into query
    intent, SQL, and structured results.
 2. **Semantic Layer edit flow**: converts a natural language change request
    into tool calls and safely updates Cube YAML.
+3. **Cube REST data query flow**: converts a user question into Cube REST
+   `/v1/load` query JSON, validates it against `/v1/meta`, and returns
+   structured rows.
 
 ```mermaid
 flowchart LR

@@ -9,8 +9,8 @@ LOCAL_CHAT_UI_HTML = """<!doctype html>
     header { padding: 18px 28px; background: #fff; border-bottom: 1px solid #dfe3ea; }
     h1 { margin: 0; font-size: 20px; letter-spacing: 0; }
     main { width: min(980px, calc(100vw - 32px)); margin: 0 auto; padding: 24px 0; }
-    .toolbar, .composer { display: grid; grid-template-columns: 1fr 180px; gap: 12px; margin-bottom: 16px; }
-    .toolbar { grid-template-columns: 1fr 220px 160px; }
+    .toolbar, .querybar, .composer { display: grid; grid-template-columns: 1fr 180px; gap: 12px; margin-bottom: 16px; }
+    .toolbar, .querybar { grid-template-columns: 1fr 220px 160px; }
     input, textarea, button { font: inherit; }
     input, textarea { box-sizing: border-box; width: 100%; border: 1px solid #cdd4df; border-radius: 6px; padding: 10px 12px; background: #fff; }
     button { border: 0; border-radius: 6px; background: #1f6feb; color: #fff; font-weight: 600; cursor: pointer; min-height: 42px; }
@@ -20,7 +20,7 @@ LOCAL_CHAT_UI_HTML = """<!doctype html>
     .user { align-self: flex-end; background: #1f6feb; color: #fff; }
     .assistant { align-self: flex-start; background: #fff; border: 1px solid #dfe3ea; }
     textarea { resize: vertical; min-height: 72px; }
-    @media (max-width: 760px) { .toolbar, .composer { grid-template-columns: 1fr; } .message { max-width: 100%; } }
+    @media (max-width: 760px) { .toolbar, .querybar, .composer { grid-template-columns: 1fr; } .message { max-width: 100%; } }
   </style>
 </head>
 <body>
@@ -31,6 +31,11 @@ LOCAL_CHAT_UI_HTML = """<!doctype html>
       <input id="token" type="password" placeholder="API token from SEMANTIC_EDIT_SERVICE_TOKEN" />
       <button id="loadCubes">Load Cubes</button>
     </div>
+    <div class="querybar">
+      <input id="cubeApiUrl" />
+      <input id="cubeToken" type="password" placeholder="Cube API token from CUBE_API_TOKEN" />
+      <button id="queryData">Query Data</button>
+    </div>
     <section id="messages" class="messages"></section>
     <div class="composer">
       <textarea id="message" placeholder='Try: create measure revenue on payment sql amount type sum title "Revenue"'></textarea>
@@ -40,10 +45,13 @@ LOCAL_CHAT_UI_HTML = """<!doctype html>
   <script>
     const serviceUrl = document.getElementById("serviceUrl");
     const tokenInput = document.getElementById("token");
+    const cubeApiUrl = document.getElementById("cubeApiUrl");
+    const cubeTokenInput = document.getElementById("cubeToken");
     const messages = document.getElementById("messages");
     const messageInput = document.getElementById("message");
     const sendButton = document.getElementById("send");
     const loadCubesButton = document.getElementById("loadCubes");
+    const queryDataButton = document.getElementById("queryData");
 
     function addMessage(role, text) {
       const node = document.createElement("div");
@@ -76,6 +84,7 @@ LOCAL_CHAT_UI_HTML = """<!doctype html>
         if (!response.ok) return;
         const payload = await response.json();
         serviceUrl.value = payload.service_url || "";
+        cubeApiUrl.value = payload.cube_api_url || "";
         addMessage("assistant", `Config loaded from .env. Agent mode: ${payload.agent_mode}. OpenAI key: ${payload.has_openai_api_key ? "set" : "not set"}.`);
       } catch (error) {
         addMessage("assistant", `Could not load local config: ${String(error)}`);
@@ -121,8 +130,35 @@ LOCAL_CHAT_UI_HTML = """<!doctype html>
       }
     }
 
+    async function queryData() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+      addMessage("user", text);
+      messageInput.value = "";
+      queryDataButton.disabled = true;
+      try {
+        const payload = await postJson("/local-query", {
+          cube_api_url: cubeApiUrl.value,
+          cube_api_token: cubeTokenInput.value || null,
+          message: text,
+          limit: 100
+        });
+        addMessage("assistant", `${payload.message}\\n\\n${JSON.stringify({
+          cube_query: payload.plan.cube_query,
+          rows: payload.result.rows,
+          row_count: payload.result.row_count,
+          annotation: payload.result.annotation
+        }, null, 2)}`);
+      } catch (error) {
+        addMessage("assistant", String(error));
+      } finally {
+        queryDataButton.disabled = false;
+      }
+    }
+
     sendButton.addEventListener("click", sendChat);
     loadCubesButton.addEventListener("click", loadCubes);
+    queryDataButton.addEventListener("click", queryData);
     messageInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) sendChat();
     });
