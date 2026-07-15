@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
@@ -8,7 +9,9 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from metisone_ai_platform.semantic_layer.cube_yaml import (
     CubeCompiler,
     CubeSemanticLayerEditor,
+    CubeYamlAutoCompleter,
     CubeYamlRepository,
+    PostgresSchemaInspector,
 )
 from metisone_ai_platform.semantic_layer.cube_yaml.repository import CubeYamlDocument
 from metisone_ai_platform.semantic_layer.edit_service.chat_agent import (
@@ -21,6 +24,7 @@ from metisone_ai_platform.semantic_layer.edit_service.config import (
 from metisone_ai_platform.semantic_layer.edit_service.schemas import (
     ChatRequest,
     ChatResponse,
+    AutoCompleteRequest,
     CompileResponse,
     DimensionCreateRequest,
     EditResponse,
@@ -263,6 +267,23 @@ def create_app(config: EditServiceConfig | None = None) -> FastAPI:
 
         result = compiler.compile()
         return CompileResponse(**result.__dict__)
+
+    @app.post("/v1/auto-complete", dependencies=[auth_dependency])
+    def auto_complete(request: AutoCompleteRequest) -> dict[str, Any]:
+        if not resolved_config.postgres_dsn:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="METISONE_POSTGRES_DSN is not configured.",
+            )
+        metadata = PostgresSchemaInspector(resolved_config.postgres_dsn).inspect(
+            request.schemas
+        )
+        report = CubeYamlAutoCompleter(repository).complete(
+            metadata,
+            apply=request.apply,
+            bidirectional_joins=request.bidirectional_joins,
+        )
+        return asdict(report)
 
     def _list_members(cube: str, key: str) -> list[dict[str, Any]]:
         document = repository.find_by_cube(cube)

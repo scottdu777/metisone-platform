@@ -6,6 +6,7 @@ from metisone_ai_platform.data_query.models import (
     DataQueryRequest,
 )
 from metisone_ai_platform.data_query.orchestrator import DataQueryOrchestrator
+from metisone_ai_platform.data_query.planner import OpenAIDataQueryPlanner
 
 
 class FakePlanner(DataQueryPlanner):
@@ -96,3 +97,27 @@ def test_data_query_orchestrator_rejects_unknown_members() -> None:
 
     assert response.status == "error"
     assert "Unknown Cube dimension" in response.error
+
+
+def test_openai_planner_normalizes_duplicate_cube_prefix(monkeypatch) -> None:
+    planner = OpenAIDataQueryPlanner(api_key="test")
+    metadata = {
+        "cubes": [
+            {
+                "name": "actor",
+                "measures": [{"name": "actor.count", "type": "number"}],
+                "dimensions": [{"name": "actor.actor_id", "type": "number"}],
+            }
+        ]
+    }
+    monkeypatch.setattr(
+        planner,
+        "_call_openai",
+        lambda request, compact_metadata: (
+            '{"query":{"measures":["actor.actor.count"],"limit":100}}'
+        ),
+    )
+
+    plan = planner.plan(DataQueryRequest(question="How many actors?"), metadata)
+
+    assert plan.cube_query.measures == ["actor.count"]

@@ -14,6 +14,7 @@ load_project_env()
 class EditServiceConfig:
     cube_model_dir: Path
     api_token: str | None = None
+    postgres_dsn: str | None = None
     compile_command: list[str] | None = None
     compile_cwd: Path | None = None
 
@@ -34,6 +35,7 @@ def load_config_from_env() -> EditServiceConfig:
     return EditServiceConfig(
         cube_model_dir=Path(cube_model_dir),
         api_token=os.getenv("METISONE_SEMANTIC_EDIT_TOKEN"),
+        postgres_dsn=os.getenv("METISONE_POSTGRES_DSN"),
         compile_command=compile_command,
         compile_cwd=compile_cwd,
     )

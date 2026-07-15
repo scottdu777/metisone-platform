@@ -51,6 +51,12 @@ class CompileResponse(BaseModel):
     stderr: str
 
 
+class AutoCompleteRequest(BaseModel):
+    schemas: list[str] = Field(default_factory=lambda: ["public"])
+    apply: bool = False
+    bidirectional_joins: bool = True
+
+
 class ChatRequest(BaseModel):
     message: str
 

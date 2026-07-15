@@ -1,0 +1,32 @@
+cubes:
+  - name: category
+    sql_table: public.category
+    data_source: default
+
+    joins:
+      - name: film_category
+        sql: "{CUBE}.category_id = {film_category}.category_id"
+        relationship: one_to_many
+
+    dimensions:
+      - name: category_id
+        sql: category_id
+        type: number
+        primary_key: true
+        public: true
+
+      - name: name
+        sql: name
+        type: string
+
+      - name: last_update
+        sql: last_update
+        type: time
+
+    measures:
+      - name: count
+        type: count
+        title: Category Count
+        description: Number of categories
+
+    pre_aggregations: []

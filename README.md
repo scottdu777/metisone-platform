@@ -350,7 +350,7 @@ cd /home/cody/metisone-platform
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
-pip install ".[service]"
+pip install ".[service,postgres]"
 ```
 
 ### 3. Configure Environment Variables
@@ -376,6 +376,62 @@ METISONE_CUBE_MODEL_DIR=/home/cody/metisone
 Configuration:
 
 - `METISONE_CUBE_MODEL_DIR`: directory containing Cube YAML files.
+- `METISONE_POSTGRES_DSN`: optional PostgreSQL DSN used to enrich Cube-generated
+  YAML with database primary keys, unique constraints, and foreign-key joins.
+
+### Auto-complete Cube-generated YAML
+
+Install the service and PostgreSQL extras, point `METISONE_CUBE_MODEL_DIR` at
+the Cube-generated YAML directory, and configure `METISONE_POSTGRES_DSN`.
+Preview deterministic changes first:
+
+```http
+POST /v1/auto-complete
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "schemas": ["public"],
+  "apply": false,
+  "bidirectional_joins": true
+}
+```
+
+Using curl against a service running on port 8088:
+
+```bash
+curl -X POST http://127.0.0.1:8088/v1/auto-complete \
+  -H "Authorization: Bearer $METISONE_SEMANTIC_EDIT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"schemas":["public"],"apply":false,"bidirectional_joins":true}'
+```
+
+Using PowerShell:
+
+```powershell
+$headers = @{ Authorization = "Bearer $env:METISONE_SEMANTIC_EDIT_TOKEN" }
+$body = @{
+  schemas = @("public")
+  apply = $false
+  bidirectional_joins = $true
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8088/v1/auto-complete" `
+  -Method Post `
+  -Headers $headers `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+Repeat with `"apply": true` after reviewing `changes` and `warnings`. The
+auto-completer only uses database constraint evidence. It marks existing
+primary-key dimensions or creates missing ones from PostgreSQL column types,
+adds a `count` measure when missing, creates FK-side
+`many_to_one`/`one_to_one` joins, and optionally creates reverse
+`one_to_many` joins. Conflicting joins, missing Cube models, tables without
+primary keys, and multiple foreign keys between the same pair of tables are
+reported without being overwritten or guessed.
 - `METISONE_SEMANTIC_EDIT_TOKEN`: bearer token required by the API.
 - `METISONE_CUBE_COMPILE_COMMAND`: fixed command run by `POST /v1/compile`.
 - `METISONE_CUBE_COMPILE_CWD`: working directory for the compile command.
