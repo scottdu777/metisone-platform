@@ -1,1 +1,1 @@
-"""Core contracts and shared models."""
+"""Small shared utilities used across current application modules."""

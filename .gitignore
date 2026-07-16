@@ -1,7 +1,28 @@
+# Local secrets and environment files
 .env
+*.env
+!.env.example
+!**/.env.example
 sn.txt
+
+# Virtual environments and local installs
 .venv/
+venv/
+env/
+ENV/
 *.egg-info/
+
+# Python build and cache artifacts
 __pycache__/
 .pytest_cache/
-*.pyc
+.mypy_cache/
+.ruff_cache/
+*.py[cod]
+build/
+dist/
+
+# Runtime logs
+logs/
+**/logs/
+*.log
+*.jsonl

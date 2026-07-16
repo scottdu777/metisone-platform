@@ -1,13 +1,13 @@
-from metisone_ai_platform.semantic_layer.cube_yaml.auto_complete import (
+from metisone_ai_platform.semantic_edit.cube_yaml.auto_complete import (
     ColumnMetadata,
     CubeYamlAutoCompleter,
     ForeignKeyMetadata,
     SchemaMetadata,
     TableMetadata,
 )
-from metisone_ai_platform.semantic_layer.cube_yaml.repository import CubeYamlRepository
-from metisone_ai_platform.semantic_layer.edit_service.app import create_app
-from metisone_ai_platform.semantic_layer.edit_service.config import EditServiceConfig
+from metisone_ai_platform.semantic_edit.cube_yaml.repository import CubeYamlRepository
+from metisone_ai_platform.semantic_edit.service.app import create_app
+from metisone_ai_platform.semantic_edit.service.config import EditServiceConfig
 
 
 def test_auto_complete_enriches_dvdrental_keys_and_bidirectional_joins(tmp_path) -> None:

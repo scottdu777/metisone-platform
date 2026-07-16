@@ -1,7 +1,7 @@
 [project]
 name = "metisone-ai-platform"
 version = "0.1.0"
-description = "Modular AI knowledge platform core providers and query orchestrator."
+description = "Semantic Client with independently callable semantic Edit and Query APIs."
 requires-python = ">=3.11"
 dependencies = []
 

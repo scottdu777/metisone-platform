@@ -1,0 +1,59 @@
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Any, Protocol
+
+
+class SemanticEditGateway(Protocol):
+    """Outbound edit operations required by the MCP tool adapter."""
+
+    def list_cubes(self) -> list[dict[str, Any]]: ...
+    def get_cube(self, cube: str) -> dict[str, Any]: ...
+    def list_measures(self, cube: str) -> list[dict[str, Any]]: ...
+    def create_measure(self, cube: str, name: str, sql: str, measure_type: str, extra_fields: dict[str, Any] | None = None) -> dict[str, Any]: ...
+    def modify_measure(self, cube: str, name: str, fields: dict[str, Any]) -> dict[str, Any]: ...
+    def delete_measure(self, cube: str, name: str) -> dict[str, Any]: ...
+    def list_dimensions(self, cube: str) -> list[dict[str, Any]]: ...
+    def create_dimension(self, cube: str, name: str, sql: str, dimension_type: str, extra_fields: dict[str, Any] | None = None) -> dict[str, Any]: ...
+    def modify_dimension(self, cube: str, name: str, fields: dict[str, Any]) -> dict[str, Any]: ...
+    def delete_dimension(self, cube: str, name: str) -> dict[str, Any]: ...
+    def list_joins(self, cube: str) -> list[dict[str, Any]]: ...
+    def create_join(self, cube: str, name: str, sql: str, relationship: str, extra_fields: dict[str, Any] | None = None) -> dict[str, Any]: ...
+    def modify_join(self, cube: str, name: str, fields: dict[str, Any]) -> dict[str, Any]: ...
+    def delete_join(self, cube: str, name: str) -> dict[str, Any]: ...
+    def compile(self) -> dict[str, Any]: ...
+
+
+@dataclass(frozen=True)
+class ToolCall:
+    name: str
+    arguments: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ToolResult:
+    name: str
+    success: bool
+    data: Any = None
+    error: str | None = None
+
+
+class MCPServer(ABC):
+    @abstractmethod
+    def list_tools(self) -> list[dict[str, Any]]:
+        """Return tool schemas the LLM can use."""
+
+    @abstractmethod
+    def call_tool(self, call: ToolCall) -> ToolResult:
+        """Execute one tool call."""
+
+
+class MCPClient(ABC):
+    @abstractmethod
+    def list_tools(self) -> list[dict[str, Any]]:
+        """Return tool schemas from the server."""
+
+    @abstractmethod
+    def call_tool(self, call: ToolCall) -> ToolResult:
+        """Call one tool on the server."""

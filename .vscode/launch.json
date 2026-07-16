@@ -2,45 +2,29 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Semantic Edit Service",
+      "name": "Debug Semantic Edit YAML Service",
       "type": "python",
       "request": "launch",
-      "module": "uvicorn",
-      "args": [
-        "metisone_ai_platform.semantic_layer.edit_service.main:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8088",
-        "--reload"
-      ],
-      "envFile": "${workspaceFolder}/.env",
+      "program": "${workspaceFolder}/deployments/semantic_edit_yaml_service/main.py",
+      "envFile": "${workspaceFolder}/deployments/semantic_edit_yaml_service/.env",
       "console": "integratedTerminal",
       "justMyCode": true
     },
     {
-      "name": "Debug Edit Service Client",
+      "name": "Debug Semantic Client",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/scripts/debug_edit_service_client.py",
-      "envFile": "${workspaceFolder}/.env",
+      "program": "${workspaceFolder}/deployments/semantic_client/main.py",
+      "envFile": "${workspaceFolder}/deployments/semantic_client/.env",
       "console": "integratedTerminal",
       "justMyCode": true
     },
     {
-      "name": "Debug Local Chat Client UI",
+      "name": "Debug Semantic Data Query Service",
       "type": "python",
       "request": "launch",
-      "module": "uvicorn",
-      "args": [
-        "metisone_ai_platform.semantic_layer.client_app.main:app",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        "8090",
-        "--reload"
-      ],
-      "envFile": "${workspaceFolder}/.env",
+      "program": "${workspaceFolder}/deployments/semantic_data_query_service/main.py",
+      "envFile": "${workspaceFolder}/deployments/semantic_data_query_service/.env",
       "console": "integratedTerminal",
       "justMyCode": true
     }

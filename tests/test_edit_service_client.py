@@ -1,7 +1,7 @@
 import json
 import urllib.request
 
-from metisone_ai_platform.semantic_layer.edit_service.client import (
+from metisone_ai_platform.semantic_client.api_clients.edit_api import (
     SemanticEditServiceClient,
 )
 

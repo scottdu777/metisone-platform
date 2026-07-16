@@ -1,5 +1,8 @@
-from metisone_ai_platform.semantic_layer.edit_service.app import create_app
-from metisone_ai_platform.semantic_layer.edit_service.config import EditServiceConfig
+import json
+
+from metisone_ai_platform.observability import JsonRequestLogConfig
+from metisone_ai_platform.semantic_edit.service.app import create_app
+from metisone_ai_platform.semantic_edit.service.config import EditServiceConfig
 
 
 def test_edit_service_crud_and_auth(tmp_path) -> None:
@@ -97,11 +100,13 @@ def test_edit_service_chat_creates_measure(tmp_path) -> None:
         encoding="utf-8",
     )
 
+    log_file = tmp_path / "edit-requests.jsonl"
     app = create_app(
-        EditServiceConfig(
+        config=EditServiceConfig(
             cube_model_dir=cube_dir,
             api_token="secret",
-        )
+        ),
+        request_log_config=JsonRequestLogConfig(file_path=log_file),
     )
     client = TestClient(app)
     response = client.post(
@@ -116,6 +121,10 @@ def test_edit_service_chat_creates_measure(tmp_path) -> None:
     assert response.json()["success"] is True
     assert response.json()["command"]["member_kind"] == "measure"
     assert "revenue" in payment.read_text(encoding="utf-8")
+    record = json.loads(log_file.read_text(encoding="utf-8"))
+    assert record["service"] == "semantic_edit_yaml_service"
+    assert record["request"]["message"].startswith("create measure revenue")
+    assert record["response"]["success"] is True
 
 
 def test_edit_service_chat_ui_is_available(tmp_path) -> None:

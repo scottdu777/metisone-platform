@@ -1,12 +1,12 @@
-from metisone_ai_platform.data_query.contracts import DataQueryClient, DataQueryPlanner
-from metisone_ai_platform.data_query.models import (
+from metisone_ai_platform.semantic_query.contracts import DataQueryClient, DataQueryPlanner
+from metisone_ai_platform.semantic_query.models import (
     CubeFilter,
     CubeQuery,
     DataQueryPlan,
     DataQueryRequest,
 )
-from metisone_ai_platform.data_query.orchestrator import DataQueryOrchestrator
-from metisone_ai_platform.data_query.planner import OpenAIDataQueryPlanner
+from metisone_ai_platform.semantic_query.orchestrator import DataQueryOrchestrator
+from metisone_ai_platform.semantic_query.planner import OpenAIDataQueryPlanner
 
 
 class FakePlanner(DataQueryPlanner):
