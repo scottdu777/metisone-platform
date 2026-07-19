@@ -1,5 +1,11 @@
 # MetisOne AI Platform
 
+MetisOne AI Platform is a BI platform built on top of Cube Core. It extends
+Cube Core's semantic layer with AI-assisted model editing and natural-language
+data querying. Users can build and refine semantic data models through chat,
+then ask complex analytical questions through chat while MetisOne plans,
+validates, and executes Cube REST queries.
+
 MetisOne provides one Semantic Client and two independently callable backend
 APIs:
 
