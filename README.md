@@ -181,3 +181,7 @@ python -m pytest
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for dependency rules and detailed call
 flows.
+
+## License
+
+MetisOne AI Platform is open source under the [Apache License 2.0](LICENSE).
