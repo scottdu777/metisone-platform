@@ -148,6 +148,22 @@ class SemanticEditServiceClient:
     def delete_join(self, cube: str, name: str) -> dict[str, Any]:
         return self._request("DELETE", f"/v1/cubes/{cube}/joins/{name}")
 
+    def auto_complete(
+        self,
+        schemas: list[str] | None = None,
+        apply: bool = True,
+        bidirectional_joins: bool = True,
+    ) -> dict[str, Any]:
+        return self._request(
+            "POST",
+            "/v1/auto-complete",
+            {
+                "schemas": schemas or ["public"],
+                "apply": apply,
+                "bidirectional_joins": bidirectional_joins,
+            },
+        )
+
     def compile(self) -> dict[str, Any]:
         return self._request("POST", "/v1/compile")
 

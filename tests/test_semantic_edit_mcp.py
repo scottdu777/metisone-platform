@@ -24,6 +24,10 @@ class FakeEditClient:
         self.calls.append(("create_measure", cube, name, sql, measure_type, extra_fields))
         return {"success": True, "message": "created"}
 
+    def auto_complete(self, schemas, apply, bidirectional_joins):
+        self.calls.append(("auto_complete", schemas, apply, bidirectional_joins))
+        return {"changed": True}
+
 
 class FakePlanner(SemanticEditPlanner):
     def __init__(self) -> None:
@@ -128,6 +132,26 @@ def test_semantic_edit_mcp_server_maps_create_measure() -> None:
             {"title": "Revenue"},
         )
     ]
+
+
+def test_semantic_edit_mcp_server_maps_auto_complete() -> None:
+    edit_client = FakeEditClient()
+    server = SemanticLayerEditMCPServer(edit_client)
+
+    result = server.call_tool(
+        ToolCall(
+            name="auto_complete",
+            arguments={
+                "schemas": ["public"],
+                "apply": True,
+                "bidirectional_joins": True,
+            },
+        )
+    )
+
+    assert result.success is True
+    assert result.data == {"changed": True}
+    assert edit_client.calls == [("auto_complete", ["public"], True, True)]
 
 
 def test_local_llm_agent_plans_then_calls_mcp() -> None:

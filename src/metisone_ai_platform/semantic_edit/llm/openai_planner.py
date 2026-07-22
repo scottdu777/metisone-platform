@@ -67,7 +67,12 @@ class OpenAISemanticPlanner(SemanticEditPlanner):
                         "clear, for example first name -> first_name, last name -> "
                         "last_name, full name -> full_name. If you need to inspect "
                         "read-only tools first, use observations from prior tool results "
-                        "in the context to finish the requested edit in the next plan."
+                        "in the context to finish the requested edit in the next plan. "
+                        "For broad requests asking to inspect the database schema and "
+                        "fix or complete primary keys, foreign keys, joins, or all Cube "
+                        "YAML models, prefer one auto_complete tool call with "
+                        "apply=true and bidirectional_joins=true instead of editing one "
+                        "cube at a time."
                     ),
                 },
                 {

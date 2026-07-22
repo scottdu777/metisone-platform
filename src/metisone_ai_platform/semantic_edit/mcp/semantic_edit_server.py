@@ -30,6 +30,7 @@ class SemanticLayerEditMCPServer(MCPServer):
             "create_join": self._create_join,
             "modify_join": self._modify_join,
             "delete_join": self._delete_join,
+            "auto_complete": self._auto_complete,
             "compile": lambda args: self.edit_client.compile(),
         }
 
@@ -104,6 +105,20 @@ class SemanticLayerEditMCPServer(MCPServer):
                 "Delete a join from a cube.",
                 {"cube": "string", "name": "string"},
             ),
+            self._tool(
+                "auto_complete",
+                (
+                    "Inspect PostgreSQL schema metadata and complete missing "
+                    "primary keys and joins across all Cube YAML models. Use this "
+                    "for broad requests that mention all cubes, all tables, primary "
+                    "keys, foreign keys, joins, or schema discovery."
+                ),
+                {
+                    "schemas": "string[]?",
+                    "apply": "boolean",
+                    "bidirectional_joins": "boolean",
+                },
+            ),
             self._tool("compile", "Trigger configured Cube compile/reload command.", {}),
         ]
 
@@ -165,6 +180,13 @@ class SemanticLayerEditMCPServer(MCPServer):
 
     def _delete_join(self, args: dict[str, Any]) -> Any:
         return self.edit_client.delete_join(args["cube"], args["name"])
+
+    def _auto_complete(self, args: dict[str, Any]) -> Any:
+        return self.edit_client.auto_complete(
+            schemas=args.get("schemas") or ["public"],
+            apply=bool(args.get("apply", True)),
+            bidirectional_joins=bool(args.get("bidirectional_joins", True)),
+        )
 
     def _extra_fields(self, args: dict[str, Any]) -> dict[str, Any]:
         reserved = {"cube", "name", "sql", "type", "relationship", "fields"}

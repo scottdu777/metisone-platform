@@ -1,15 +1,14 @@
 import json
 
+from metisone_ai_platform.observability import JsonRequestLogConfig
 from metisone_ai_platform.semantic_query.app import create_app
 from metisone_ai_platform.semantic_query.config import DataQueryServiceConfig
 from metisone_ai_platform.semantic_query.contracts import DataQueryClient, DataQueryPlanner
 from metisone_ai_platform.semantic_query.models import (
     CubeQuery,
     DataQueryPlan,
-    DataQueryRequest,
 )
 from metisone_ai_platform.semantic_query.orchestrator import DataQueryOrchestrator
-from metisone_ai_platform.observability import JsonRequestLogConfig
 
 
 class CountPlanner(DataQueryPlanner):
@@ -62,8 +61,9 @@ def test_semantic_data_query_service_is_independently_authenticated(tmp_path) ->
 
     assert unauthorized.status_code == 401
     assert response.status_code == 200
-    assert response.json()["answer"] == "查询结果：200"
-    assert response.json()["plan"]["cube_query"]["measures"] == ["actor.count"]
+    assert response.json()["answer"] == "There are 200 actors."
+    assert response.json()["cube_request"]["query"]["measures"] == ["actor.count"]
+    assert response.json()["cube_response"]["data"] == [{"actor.count": "200"}]
     assert response.json()["result"]["rows"] == [{"actor.count": "200"}]
     records = [
         json.loads(line) for line in log_file.read_text(encoding="utf-8").splitlines()
@@ -71,6 +71,21 @@ def test_semantic_data_query_service_is_independently_authenticated(tmp_path) ->
     assert len(records) == 2
     assert records[-1]["service"] == "semantic_data_query_service"
     assert records[-1]["request"]["question"] == "How many actors?"
+    assert records[-1]["response"]["cube_request"] == {
+        "endpoint": "/load",
+        "method": "POST",
+        "query": {
+            "measures": ["actor.count"],
+            "dimensions": [],
+            "filters": [],
+            "timeDimensions": [],
+            "segments": [],
+            "limit": 100,
+        },
+    }
+    assert records[-1]["response"]["cube_response"]["data"] == [
+        {"actor.count": "200"}
+    ]
     assert records[-1]["response"]["result"]["rows"] == [{"actor.count": "200"}]
 
 

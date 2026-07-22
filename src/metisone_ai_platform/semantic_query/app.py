@@ -71,18 +71,27 @@ def create_app(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=response.error or "Data query failed.",
             )
+        cube_query = (
+            response.plan.cube_query.to_cube_payload() if response.plan else None
+        )
+        cube_response = response.result.raw_response if response.result else None
         return {
             "status": response.status,
             "message": response.message,
             "answer": format_query_answer(
-                response.result.rows if response.result else []
+                response.result.rows if response.result else [],
+                question=request.question,
+                response_hint=response.plan.response_hint if response.plan else None,
             ),
             "plan": {
-                "cube_query": response.plan.cube_query.to_cube_payload()
-                if response.plan
-                else None,
                 "response_hint": response.plan.response_hint if response.plan else None,
             },
+            "cube_request": {
+                "endpoint": "/load",
+                "method": "POST",
+                "query": cube_query,
+            },
+            "cube_response": cube_response,
             "result": {
                 "rows": response.result.rows if response.result else [],
                 "row_count": response.result.row_count if response.result else 0,
