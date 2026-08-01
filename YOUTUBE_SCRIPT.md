@@ -6,9 +6,15 @@ Hi everyone, my name is Scott.
 
 Today I want to show you a BI platform I am building. It is called MetisOne.
 
-MetisOne is built on top of Cube Core, an open-source engine for semantic layers and data queries. Cube Core gives us a strong foundation for defining dimensions, metrics, joins, and reusable business logic. If you want to learn more about Cube Core, you can visit their official website at https://cube.dev/.
+MetisOne AI Platform is a BI platform built on top of Cube Core. It extends
+Cube Core's semantic layer with AI-assisted model editing and natural-language
+data querying. Users can build and refine semantic data models through chat,
+then ask complex analytical questions through chat while MetisOne plans,
+validates, and executes Cube REST queries.
 
-Why the semantic layer is so important to BI.
+2. Cube core is an open-source engine for semantic layers and data queries. Cube Core gives us a strong foundation for defining dimensions, metrics, joins, and reusable business logic. If you want to learn more about Cube Core, you can visit their official website at https://cube.dev/.
+
+3. Why the semantic layer is so important to BI.
 
 Becuase without a semantic layer, the AI has to deal directly with database tables, column names, joins, and SQL logic. That is risky, because business data always is complicated. 
 
@@ -19,7 +25,7 @@ So when a user asks a question in plain English, the AI does not have to guess f
 in short, a semantic layer is the bridge between raw data and business language.
 
 
-The system has four main parts.
+4. My system has four main parts.
 
 First, there is Cube Core. This is the open-source product from Cube Dev. It manages the semantic layer and executes data queries.
 
