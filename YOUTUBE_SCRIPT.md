@@ -1,120 +1,235 @@
-# MetisOne Platform YouTube Script
+﻿# MetisOne Platform YouTube Script
 
-## 1. Opening
+## 1. Opening and Introduction
 
-Hi everyone, my name is Scott, and today I want to show you MetisOne Platform.
+Hi everyone, my name is Scott.
 
-I have worked in the BI industry for many years. Over time, I noticed one big problem: most BI tools are powerful, but they are also too complex.
+Today I want to show you a BI platform I am building. It is called MetisOne.
 
-There are too many settings, too many screens, and too many features that most users never use.
+MetisOne is built on top of Cube Core, an open-source engine for semantic layers and data queries. Cube Core gives us a strong foundation for defining dimensions, metrics, joins, and reusable business logic. If you want to learn more about Cube Core, you can visit their official website at https://cube.dev/.
 
-In many companies, users may only need 20 to 30 percent of the product. But the company still has to pay for the whole package.
+Why the semantic layer is so important to BI.
 
-Now, with AI agents, I think we have a chance to make BI much simpler.
+Becuase without a semantic layer, the AI has to deal directly with database tables, column names, joins, and SQL logic. That is risky, because business data always is complicated. 
 
-Instead of asking users to configure every model, metric, filter, and query by hand, MetisOne lets users work with data through chat.
+A semantic layer gives raw data business meaning. It defines metrics, dimensions, joins, and reusable business logic in a consistent way.
 
-Users can build the semantic layer with natural language. They can edit semantic models through chat. And they can ask complex data questions through chat.
+So when a user asks a question in plain English, the AI does not have to guess from raw tables. It can work through the semantic layer and return a more reliable answer.
 
-The goal is simple: make BI easier to use, faster to set up, and more focused on what customers actually need.
+in short, a semantic layer is the bridge between raw data and business language.
 
-## 2. The Problem With Traditional BI
 
-Before we go deeper, let me quickly explain what BI means to me.
+The system has four main parts.
 
-I like to describe BI with three "rights":
+First, there is Cube Core. This is the open-source product from Cube Dev. It manages the semantic layer and executes data queries.
+
+Second, I added a Semantic Layer Edit Service.
+Cube Core is a great semantic layer engine, but its support for model editing is still limited. For example, it is not easy to add new dimensions through an API, and the auto-generated models may miss important information such as primary keys or joins.
+So I built this Edit Service to enhance model editing by directly updating the Cube YAML models. It can manage dimensions, metrics, joins, primary keys, and other semantic model definitions.
+
+Third, there is a Data Query Service. This service takes a natural language question, uses the semantic layer metadata, and turns the question into a Cube REST query that Cube Core can execute.
+
+Finally, there is the client application. This is the chat UI. It is the main entry point for users. From this interface, users can manage the data model and query data through conversation.
+
+So the idea is simple: use Cube Core as the reliable semantic layer and query engine, and use AI agents to make the whole BI workflow easier to use.
+
+Now, let's jump into the demo.
+
+
+
+
+
+
+
+
+
+
+
+
+
+The reason I started this project is also pretty simple.
+
+I have worked in the BI industry for many years, and I noticed one common problem.
+
+Most BI products are very powerful, but they are also too complex. They come with a lot of features, a lot of configuration options, and a lot of screens.
+
+But in real projects, each customer may only use 20 or 30 percent of the product. The rest is rarely used.
+
+The problem is, customers still have to learn it, manage it, and pay for it.
+
+Why does this happen?
+
+Because every customer has slightly different needs.
+
+For example, one customer may want charts with rounded corners, while another customer wants square corners.
+
+One customer may only need a simple filter for dimensions and metrics. Another customer may want a complex filter builder with many conditions.
+
+So what do BI companies usually do?
+
+They keep adding more.
+
+More options. More screens. More special logic. More custom settings.
+
+That is feature creep.
+
+At one of my previous companies, we had almost 20 different types of filters and three different types of dashboards.
+
+Many of them were doing almost the same job.
+
+That felt wrong to me.
+
+So I started asking myself:
+
+Can we make BI simpler for small and mid-sized companies?
+
+Can we give them the core features they actually need, with less configuration, a better user experience, and a lower cost?
+
+Now that we have AI agents, I think the answer is yes.
+
+We can let AI handle a lot of the complex configuration work dynamically, while users focus on what they actually want from the data.
+
+And that is why I started building MetisOne.
+## 2. What BI Means To Me
+
+Before I jump into the demo, let me explain how I think about BI.
+
+For me, BI is really about three things.
 
 Show the right data, to the right person, in the right way.
 
-That sounds simple. But most BI products have become bigger and bigger over time.
+That is it.
 
-To support different companies, different teams, and different use cases, they keep adding more and more features.
+The right data means we can find the correct data and return the correct answer.
 
-After a while, the product becomes very powerful, but also very hard to learn.
+The right person means security. A user should only see the data they are allowed to see.
 
-Have you seen configuration screens like these?
+The right way means presentation. Sometimes the answer should be a Grid table. Sometimes it should be a chart. Sometimes it should be a dashboard or a report.
 
-Here, I can show some examples from tools like Power BI, Tabular Editor, or MicroStrategy.
 
-For experienced BI engineers, these screens may be okay. But for many business users, analysts, and small teams, they can feel overwhelming.
+Many BI companies are beginning to adopt an AI-first approach. They allow users to get information through chat, while reducing the need to manually create charts or retrieve data.
 
-Sometimes it feels like this: you start as a beginner, you open the configuration page, and then you almost want to give up.
+For example:
 
-Based on my experience, maybe 70 percent of BI features are rarely used. Another 15 percent may only be used once a month, or once a quarter.
+"Show me revenue by month."
 
-But the company still pays for all of it.
+That feels much more natural than clicking through ten different setup screens.
 
-At one of my previous companies, we had almost 20 different types of filters. Many of them were very similar. They existed because different enterprise customers needed slightly different custom behavior.
+But there is one important piece behind this: the semantic layer.
 
-That flexibility can be useful for large companies. But it also makes the system harder to learn, harder to maintain, and more expensive for everyone else.
+Without a semantic layer, the AI has to deal directly with database tables, column names, joins, and SQL logic. That is risky, because business data is rarely simple.
 
-This is the gap I want MetisOne to address.
+For example, two teams may both talk about revenue, but one team may include refunds, and another team may not. If those definitions are not managed in one place, the same question can produce different answers.
+
+A semantic layer solves this problem. It gives raw data business meaning. It defines metrics, dimensions, joins, and reusable business logic in a consistent way.
+
+So when a user asks a question in plain English, the AI does not have to guess from raw tables. It can work through the semantic layer and return a more reliable answer.
+
+However, complex databases still require a strong semantic layer. New dimensions and metrics often need to be designed before users can query them correctly, and that usually requires knowledge of the database schema.
+
+So the next question is:
+
+Can that work also be done through chat?
 
 ## 3. What MetisOne Does Differently
 
-MetisOne takes a different approach.
+So MetisOne is my attempt to build that kind of BI system.
 
-I want to build a simple and easy-to-use BI platform that can meet the needs of small and mid-sized businesses. It should also be easy to integrate into a customer's existing system.
+I am not trying to build a giant enterprise BI suite with every possible feature.
 
-Based on the three "rights" idea, we can break a BI system into three major parts.
+That is not the goal.
 
-The right data means data querying.
+My goal is to build something simpler and easier to understand.
 
-The right person means security.
+Something that can cover the common BI needs of small and mid-sized companies.
 
-The right way means presentation.
+And if a company needs more, the system should be modular, so developers can extend it.
 
-In this project, I leave security to the customer system for now. MetisOne focuses on data querying and presentation.
+In this video, I am mainly focusing on one part:
 
-In this video, I will focus on data querying. I will show you how to build a simple but powerful data query system with AI.
+Data querying.
 
-MetisOne is built on top of Cube Core. If you are interested in Cube, you can visit the Cube website and learn more about it. Cube is a very strong open-source product. It provides a semantic layer and a query engine.
+MetisOne is built on top of Cube Core.
 
-On top of Cube Core, MetisOne adds an AI agent layer.
+Cube Core already gives us a semantic layer and a query engine.
 
-This AI layer helps users create and update semantic model elements, such as dimensions, measures, and joins. It also helps users query data.
+That is important because the semantic layer gives business meaning to raw data.
 
-And the whole process can happen through chat and natural language, instead of complex configuration pages.
+Without a semantic layer, users need to understand database tables, joins, and SQL.
+
+Different teams may also calculate the same metric, such as revenue, in different ways.
+
+A semantic layer gives us consistent definitions for metrics and dimensions.
+
+It defines the correct relationships between data tables.
+
+It lets us reuse business logic.
+
+It also gives BI tools and AI agents a simpler interface to work with.
+
+And most importantly, it helps the system return more reliable and trustworthy answers.
+
+In simple terms, the semantic layer is a bridge between complex database structures and the language business users understand.
+
+That is a very strong foundation.
+
+On top of that, MetisOne adds an AI agent layer.
+
+This layer improves how users manage the semantic layer and how they query data through Cube Core.
 
 ## 4. Demo Setup
 
-Now let me show you a quick demo.
+Now let me show you the demo setup.
 
-In my environment, I have a PostgreSQL database with a sample DVD rental database. I also have Cube Core running in a virtual machine.
+I am using a PostgreSQL database with a sample DVD rental dataset.
 
-If you want to install and set up Cube Core with your own database, you can check the official Cube documentation.
+I also have Cube Core running in a virtual machine.
 
-First, I open the Cube Core configuration page.
+First, I open Cube Core.
 
-Here, Cube is connected to the PostgreSQL database.
+Cube is connected to my PostgreSQL database.
 
-You can see a list of database tables and views.
+Here we can see the database tables and views.
 
-For this demo, I select the tables and let Cube generate the initial semantic model.
+For this demo, I select the tables and let Cube generate the first version of the semantic model.
 
-This is a good starting point. Cube can generate basic cubes, dimensions, and measures from the database schema.
+This is a good start.
 
-But the generated model is not always complete.
+Cube can read the database schema and generate basic cubes, dimensions, and measures.
 
-For example, some tables may need a primary key. Some relationships may need join definitions. And some business metrics may need extra semantic logic.
+But the generated model is not perfect.
 
-In MetisOne, I use a Semantic Edit Service to update and complete this model.
+Some tables may be missing primary keys.
 
-Instead of opening the YAML file and editing everything by hand, I can send a request through the chat UI.
+Some joins may need to be added.
 
-For example, I can say:
+Some business logic may need to be defined manually.
+
+In a traditional setup, I would open the YAML files and edit them by hand.
+
+That works, but it is not very friendly.
+
+In MetisOne, I use a Semantic Edit Service.
+
+The edit service can update the Cube YAML model through an API.
+
+And on my local machine, I have a chat UI with an AI agent.
+
+So I can type something like:
 
 "Add a full name dimension to actor, based on first name and last name."
 
-The AI agent understands the request, finds the right cube, creates the right dimension, and updates the semantic model.
+The agent figures out which cube to use, what field to create, and how to update the model.
 
-So the user does not need to remember the YAML syntax. They can describe what they want.
+The user does not need to remember the YAML syntax.
+
+They just describe the change they want.
 
 ## 5. Data Querying With Chat
 
-The second part is data querying.
+The next part is querying data.
 
-After the semantic model is ready, users can ask business questions directly.
+Once the semantic model is ready, the user can ask questions directly.
 
 For example:
 
@@ -122,23 +237,45 @@ For example:
 
 Or:
 
-"How many Action films are there?"
+"How many Action movies are there?"
 
-MetisOne sends the question to an AI planner. The planner reads Cube metadata, creates a Cube REST query, validates it, runs it through Cube, and returns the result.
+MetisOne sends that question to an AI planner.
 
-So instead of writing SQL, or manually building a report, the user can start with a simple question.
+The planner looks at the Cube metadata and builds a Cube REST query.
 
-MetisOne turns that question into a structured query and gives back structured data.
+Then MetisOne validates the query, sends it to Cube, gets the result back, and returns a simple answer.
+
+So the user does not need to write SQL.
+
+They do not need to build a report first.
+
+They can start with a question.
+
+And behind the scenes, MetisOne turns that question into a structured Cube query.
 
 ## 6. Closing
 
-This is still an early version of MetisOne, but the direction is clear.
+This project is still early.
 
-I want to keep the power of a semantic BI platform, but make the user experience much simpler.
+There is a lot more to build.
 
-AI should not replace the semantic layer. It should make the semantic layer easier to build, easier to understand, and easier to use.
+But the direction is pretty clear to me.
 
-That is the main idea behind MetisOne Platform.
+I do not think AI should replace the semantic layer.
+
+The semantic layer is still very important.
+
+It gives the system structure, definitions, and trust.
+
+But AI can make the semantic layer much easier to build and much easier to use.
+
+That is the idea behind MetisOne.
+
+Keep the power of BI.
+
+Remove as much complexity as possible.
+
+And let users work through natural language when it makes sense.
 
 Thanks for watching.
 

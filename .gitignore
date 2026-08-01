@@ -26,3 +26,7 @@ logs/
 **/logs/
 *.log
 *.jsonl
+
+# Generated presentation/output artifacts
+outputs/
+.tmp/
