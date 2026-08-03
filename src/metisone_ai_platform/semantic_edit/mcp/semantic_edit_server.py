@@ -30,7 +30,12 @@ class SemanticLayerEditMCPServer(MCPServer):
             "create_join": self._create_join,
             "modify_join": self._modify_join,
             "delete_join": self._delete_join,
+            "list_pre_aggregations": lambda args: self.edit_client.list_pre_aggregations(args["cube"]),
+            "create_pre_aggregation": self._create_pre_aggregation,
+            "modify_pre_aggregation": self._modify_pre_aggregation,
+            "delete_pre_aggregation": self._delete_pre_aggregation,
             "auto_complete": self._auto_complete,
+            "normalize_models": self._normalize_models,
             "compile": lambda args: self.edit_client.compile(),
         }
 
@@ -106,18 +111,66 @@ class SemanticLayerEditMCPServer(MCPServer):
                 {"cube": "string", "name": "string"},
             ),
             self._tool(
+                "list_pre_aggregations",
+                "List pre-aggregations in a cube.",
+                {"cube": "string"},
+            ),
+            self._tool(
+                "create_pre_aggregation",
+                (
+                    "Create a Cube rollup pre-aggregation in YAML format. "
+                    "Use this when the user asks to create rollup, cache, "
+                    "or pre-aggregated query data for faster BI queries."
+                ),
+                {
+                    "cube": "string",
+                    "name": "string",
+                    "type": "string?",
+                    "measures": "string[]?",
+                    "dimensions": "string[]?",
+                    "segments": "string[]?",
+                    "time_dimension": "string?",
+                    "granularity": "string?",
+                    "partition_granularity": "string?",
+                    "refresh_key": "object?",
+                    "scheduled_refresh": "boolean?",
+                },
+            ),
+            self._tool(
+                "modify_pre_aggregation",
+                "Modify fields on an existing pre-aggregation.",
+                {"cube": "string", "name": "string", "fields": "object"},
+            ),
+            self._tool(
+                "delete_pre_aggregation",
+                "Delete a pre-aggregation from a cube.",
+                {"cube": "string", "name": "string"},
+            ),
+            self._tool(
                 "auto_complete",
                 (
                     "Inspect PostgreSQL schema metadata and complete missing "
-                    "primary keys and joins across all Cube YAML models. Use this "
-                    "for broad requests that mention all cubes, all tables, primary "
-                    "keys, foreign keys, joins, or schema discovery."
+                    "primary keys, joins, count measures, qualified SQL references, "
+                    "and invalid pre_aggregations formats across all Cube YAML models. "
+                    "Use this for broad requests that mention all cubes, all tables, "
+                    "primary keys, foreign keys, joins, pre_aggregations, rollups, "
+                    "or schema discovery."
                 ),
                 {
                     "schemas": "string[]?",
                     "apply": "boolean",
                     "bidirectional_joins": "boolean",
                 },
+            ),
+            self._tool(
+                "normalize_models",
+                (
+                    "Normalize Cube YAML model formats without inspecting the database. "
+                    "Use this to fix invalid or JavaScript-like pre_aggregations/rollup "
+                    "definitions, including null pre_aggregations, object-map rollups, "
+                    "and camelCase keys such as timeDimension or refreshKey."
+                ),
+                {"apply": "boolean"},
             ),
             self._tool("compile", "Trigger configured Cube compile/reload command.", {}),
         ]
@@ -181,6 +234,29 @@ class SemanticLayerEditMCPServer(MCPServer):
     def _delete_join(self, args: dict[str, Any]) -> Any:
         return self.edit_client.delete_join(args["cube"], args["name"])
 
+    def _create_pre_aggregation(self, args: dict[str, Any]) -> Any:
+        return self.edit_client.create_pre_aggregation(
+            args["cube"],
+            args["name"],
+            pre_aggregation_type=args.get("type", "rollup"),
+            measures=args.get("measures"),
+            dimensions=args.get("dimensions"),
+            segments=args.get("segments"),
+            time_dimension=args.get("time_dimension") or args.get("timeDimension"),
+            granularity=args.get("granularity"),
+            extra_fields=self._extra_fields(args),
+        )
+
+    def _modify_pre_aggregation(self, args: dict[str, Any]) -> Any:
+        return self.edit_client.modify_pre_aggregation(
+            args["cube"],
+            args["name"],
+            args["fields"],
+        )
+
+    def _delete_pre_aggregation(self, args: dict[str, Any]) -> Any:
+        return self.edit_client.delete_pre_aggregation(args["cube"], args["name"])
+
     def _auto_complete(self, args: dict[str, Any]) -> Any:
         return self.edit_client.auto_complete(
             schemas=args.get("schemas") or ["public"],
@@ -188,8 +264,26 @@ class SemanticLayerEditMCPServer(MCPServer):
             bidirectional_joins=bool(args.get("bidirectional_joins", True)),
         )
 
+    def _normalize_models(self, args: dict[str, Any]) -> Any:
+        return self.edit_client.normalize_models(
+            apply=bool(args.get("apply", True)),
+        )
+
     def _extra_fields(self, args: dict[str, Any]) -> dict[str, Any]:
-        reserved = {"cube", "name", "sql", "type", "relationship", "fields"}
+        reserved = {
+            "cube",
+            "name",
+            "sql",
+            "type",
+            "relationship",
+            "fields",
+            "measures",
+            "dimensions",
+            "segments",
+            "time_dimension",
+            "timeDimension",
+            "granularity",
+        }
         return {
             key: value
             for key, value in args.items()

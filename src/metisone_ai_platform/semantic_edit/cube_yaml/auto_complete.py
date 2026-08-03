@@ -90,6 +90,28 @@ class CubeYamlAutoCompleter:
     def __init__(self, repository: CubeYamlRepository) -> None:
         self.repository = repository
 
+    def normalize_models(self, *, apply: bool = False) -> AutoCompleteReport:
+        documents = self.repository.read_all()
+        cubes = self._cube_index(documents)
+        changes: list[AutoCompleteChange] = []
+        dirty_documents: set[str] = set()
+
+        for cube_name, (document, cube_data) in cubes.items():
+            if self._normalize_pre_aggregations(cube_name, cube_data, changes):
+                dirty_documents.add(str(document.path))
+
+        if apply:
+            for document in documents:
+                if str(document.path) in dirty_documents:
+                    self.repository.save(document)
+
+        return AutoCompleteReport(
+            applied=apply,
+            complete=True,
+            changes=tuple(changes),
+            warnings=(),
+        )
+
     def complete(
         self,
         metadata: SchemaMetadata,
@@ -114,6 +136,8 @@ class CubeYamlAutoCompleter:
         dirty_documents: set[str] = set()
 
         for cube_name, (document, cube_data) in cubes.items():
+            if self._normalize_pre_aggregations(cube_name, cube_data, changes):
+                dirty_documents.add(str(document.path))
             self._qualify_member_sql(cube_name, cube_data, changes)
             table_ref = cube_tables[cube_name]
             table = tables.get(table_ref) if table_ref else None
@@ -351,6 +375,118 @@ class CubeYamlAutoCompleter:
         if not any(isinstance(item, dict) and item.get("name") == "count" for item in measures):
             measures.append({"name": "count", "type": "count"})
             changes.append(AutoCompleteChange(cube_name, "measure", "count", "create"))
+
+    def _normalize_pre_aggregations(
+        self,
+        cube_name: str,
+        cube: dict[str, Any],
+        changes: list[AutoCompleteChange],
+    ) -> bool:
+        if "pre_aggregations" not in cube:
+            return False
+
+        current = cube["pre_aggregations"]
+        if current is None:
+            cube["pre_aggregations"] = []
+            changes.append(
+                AutoCompleteChange(
+                    cube_name,
+                    "pre_aggregations",
+                    "pre_aggregations",
+                    "null_to_empty_sequence",
+                )
+            )
+            return True
+
+        normalized = self._pre_aggregations_as_list(current)
+        if normalized is None:
+            return False
+
+        changed = normalized != current
+        if changed:
+            cube["pre_aggregations"] = normalized
+            changes.append(
+                AutoCompleteChange(
+                    cube_name,
+                    "pre_aggregations",
+                    "pre_aggregations",
+                    "normalize_js_like_format",
+                )
+            )
+        return changed
+
+    def _pre_aggregations_as_list(self, value: Any) -> list[dict[str, Any]] | None:
+        if isinstance(value, list):
+            normalized: list[dict[str, Any]] = []
+            for item in value:
+                if not isinstance(item, dict):
+                    return None
+                normalized.append(self._normalize_pre_aggregation_item(item))
+            return normalized
+
+        if isinstance(value, dict):
+            if self._looks_like_pre_aggregation_definition(value):
+                return [self._normalize_pre_aggregation_item(value)]
+            normalized = []
+            for name, definition in value.items():
+                if not isinstance(definition, dict):
+                    return None
+                item = {"name": name, **definition}
+                normalized.append(self._normalize_pre_aggregation_item(item))
+            return normalized
+
+        return None
+
+    def _looks_like_pre_aggregation_definition(self, value: dict[str, Any]) -> bool:
+        return any(
+            key in value
+            for key in (
+                "name",
+                "type",
+                "measures",
+                "dimensions",
+                "segments",
+                "timeDimension",
+                "time_dimension",
+                "granularity",
+            )
+        )
+
+    def _normalize_pre_aggregation_item(self, item: dict[str, Any]) -> dict[str, Any]:
+        key_map = {
+            "timeDimension": "time_dimension",
+            "partitionGranularity": "partition_granularity",
+            "refreshKey": "refresh_key",
+            "scheduledRefresh": "scheduled_refresh",
+            "updateWindow": "update_window",
+            "buildRangeStart": "build_range_start",
+            "buildRangeEnd": "build_range_end",
+            "rollupLambda": "rollup_lambda",
+            "useOriginalSqlPreAggregations": "use_original_sql_pre_aggregations",
+        }
+        normalized = {
+            key_map.get(str(key), key): value
+            for key, value in item.items()
+        }
+        if "type" not in normalized and self._looks_like_rollup(normalized):
+            ordered = {"name": normalized.get("name"), "type": "rollup"}
+            for key, value in normalized.items():
+                if key != "name":
+                    ordered[key] = value
+            return ordered
+        return normalized
+
+    def _looks_like_rollup(self, item: dict[str, Any]) -> bool:
+        return any(
+            key in item
+            for key in (
+                "measures",
+                "dimensions",
+                "segments",
+                "time_dimension",
+                "granularity",
+            )
+        )
 
     def _ensure_join(
         self,

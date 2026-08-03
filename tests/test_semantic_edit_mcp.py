@@ -24,8 +24,40 @@ class FakeEditClient:
         self.calls.append(("create_measure", cube, name, sql, measure_type, extra_fields))
         return {"success": True, "message": "created"}
 
+    def create_pre_aggregation(
+        self,
+        cube,
+        name,
+        pre_aggregation_type="rollup",
+        measures=None,
+        dimensions=None,
+        segments=None,
+        time_dimension=None,
+        granularity=None,
+        extra_fields=None,
+    ):
+        self.calls.append(
+            (
+                "create_pre_aggregation",
+                cube,
+                name,
+                pre_aggregation_type,
+                measures,
+                dimensions,
+                segments,
+                time_dimension,
+                granularity,
+                extra_fields,
+            )
+        )
+        return {"success": True, "message": "created"}
+
     def auto_complete(self, schemas, apply, bidirectional_joins):
         self.calls.append(("auto_complete", schemas, apply, bidirectional_joins))
+        return {"changed": True}
+
+    def normalize_models(self, apply):
+        self.calls.append(("normalize_models", apply))
         return {"changed": True}
 
 
@@ -152,6 +184,57 @@ def test_semantic_edit_mcp_server_maps_auto_complete() -> None:
     assert result.success is True
     assert result.data == {"changed": True}
     assert edit_client.calls == [("auto_complete", ["public"], True, True)]
+
+
+def test_semantic_edit_mcp_server_maps_normalize_models() -> None:
+    edit_client = FakeEditClient()
+    server = SemanticLayerEditMCPServer(edit_client)
+
+    result = server.call_tool(
+        ToolCall(
+            name="normalize_models",
+            arguments={"apply": True},
+        )
+    )
+
+    assert result.success is True
+    assert result.data == {"changed": True}
+    assert edit_client.calls == [("normalize_models", True)]
+
+
+def test_semantic_edit_mcp_server_maps_create_pre_aggregation() -> None:
+    edit_client = FakeEditClient()
+    server = SemanticLayerEditMCPServer(edit_client)
+
+    result = server.call_tool(
+        ToolCall(
+            name="create_pre_aggregation",
+            arguments={
+                "cube": "payment",
+                "name": "pay_by_month",
+                "measures": ["payment.count"],
+                "time_dimension": "payment.payment_date",
+                "granularity": "month",
+                "scheduled_refresh": True,
+            },
+        )
+    )
+
+    assert result.success is True
+    assert edit_client.calls == [
+        (
+            "create_pre_aggregation",
+            "payment",
+            "pay_by_month",
+            "rollup",
+            ["payment.count"],
+            None,
+            None,
+            "payment.payment_date",
+            "month",
+            {"scheduled_refresh": True},
+        )
+    ]
 
 
 def test_local_llm_agent_plans_then_calls_mcp() -> None:

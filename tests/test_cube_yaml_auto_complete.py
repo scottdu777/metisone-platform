@@ -124,6 +124,198 @@ def test_auto_complete_qualifies_measure_columns_for_joined_queries(tmp_path) ->
     assert _measure(cube, "actors_count")["sql"] == "{CUBE}.actor_id"
 
 
+def test_auto_complete_normalizes_null_pre_aggregations(tmp_path) -> None:
+    cube_dir = tmp_path / "cubes"
+    cube_dir.mkdir()
+    payment_path = cube_dir / "payment.yml"
+    payment_path.write_text(
+        "\n".join(
+            [
+                "cubes:",
+                "  - name: payment",
+                "    sql_table: public.payment",
+                "    joins: []",
+                "    dimensions:",
+                "      - name: payment_id",
+                "        sql: payment_id",
+                "        type: number",
+                "    measures: []",
+                "    pre_aggregations: null",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    metadata = SchemaMetadata(
+        (
+            TableMetadata(
+                schema="public",
+                name="payment",
+                primary_key=("payment_id",),
+                unique_keys=(("payment_id",),),
+            ),
+        )
+    )
+
+    report = CubeYamlAutoCompleter(CubeYamlRepository(cube_dir)).complete(
+        metadata,
+        apply=True,
+    )
+
+    payment = CubeYamlRepository(cube_dir).find_by_cube("payment").data["cubes"][0]
+    assert payment["pre_aggregations"] == []
+    assert any(
+        change.kind == "pre_aggregations"
+        and change.action == "null_to_empty_sequence"
+        for change in report.changes
+    )
+
+
+def test_auto_complete_normalizes_map_pre_aggregations_to_yaml_sequence(tmp_path) -> None:
+    cube_dir = tmp_path / "cubes"
+    cube_dir.mkdir()
+    payment_path = cube_dir / "payment.yml"
+    payment_path.write_text(
+        "\n".join(
+            [
+                "cubes:",
+                "  - name: payment",
+                "    sql_table: public.payment",
+                "    joins: []",
+                "    dimensions:",
+                "      - name: payment_id",
+                "        sql: payment_id",
+                "        type: number",
+                "    measures:",
+                "      - name: count",
+                "        type: count",
+                "    pre_aggregations:",
+                "      payByMonth:",
+                "        measures:",
+                "          - payment.count",
+                "        timeDimension: payment.payment_date",
+                "        granularity: month",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = CubeYamlAutoCompleter(CubeYamlRepository(cube_dir)).complete(
+        _payment_metadata(),
+        apply=True,
+    )
+
+    payment = CubeYamlRepository(cube_dir).find_by_cube("payment").data["cubes"][0]
+    assert payment["pre_aggregations"] == [
+        {
+            "name": "payByMonth",
+            "type": "rollup",
+            "measures": ["payment.count"],
+            "time_dimension": "payment.payment_date",
+            "granularity": "month",
+        }
+    ]
+    assert any(
+        change.kind == "pre_aggregations"
+        and change.action == "normalize_js_like_format"
+        for change in report.changes
+    )
+
+
+def test_auto_complete_normalizes_js_like_pre_aggregation_keys(tmp_path) -> None:
+    cube_dir = tmp_path / "cubes"
+    cube_dir.mkdir()
+    payment_path = cube_dir / "payment.yml"
+    payment_path.write_text(
+        "\n".join(
+            [
+                "cubes:",
+                "  - name: payment",
+                "    sql_table: public.payment",
+                "    joins: []",
+                "    dimensions:",
+                "      - name: payment_id",
+                "        sql: payment_id",
+                "        type: number",
+                "    measures:",
+                "      - name: count",
+                "        type: count",
+                "    pre_aggregations:",
+                "      - name: payByMonth",
+                "        measures:",
+                "          - payment.count",
+                "        timeDimension: payment.payment_date",
+                "        partitionGranularity: month",
+                "        scheduledRefresh: true",
+                "        refreshKey:",
+                "          every: 1 day",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    CubeYamlAutoCompleter(CubeYamlRepository(cube_dir)).complete(
+        _payment_metadata(),
+        apply=True,
+    )
+
+    payment = CubeYamlRepository(cube_dir).find_by_cube("payment").data["cubes"][0]
+    assert payment["pre_aggregations"] == [
+        {
+            "name": "payByMonth",
+            "type": "rollup",
+            "measures": ["payment.count"],
+            "time_dimension": "payment.payment_date",
+            "partition_granularity": "month",
+            "scheduled_refresh": True,
+            "refresh_key": {"every": "1 day"},
+        }
+    ]
+
+
+def test_auto_complete_normalizes_single_object_pre_aggregation(tmp_path) -> None:
+    cube_dir = tmp_path / "cubes"
+    cube_dir.mkdir()
+    payment_path = cube_dir / "payment.yml"
+    payment_path.write_text(
+        "\n".join(
+            [
+                "cubes:",
+                "  - name: payment",
+                "    sql_table: public.payment",
+                "    joins: []",
+                "    dimensions: []",
+                "    measures:",
+                "      - name: count",
+                "        type: count",
+                "    pre_aggregations:",
+                "      name: payByMonth",
+                "      measures:",
+                "        - payment.count",
+                "      timeDimension: payment.payment_date",
+                "      granularity: month",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    CubeYamlAutoCompleter(CubeYamlRepository(cube_dir)).normalize_models(apply=True)
+
+    payment = CubeYamlRepository(cube_dir).find_by_cube("payment").data["cubes"][0]
+    assert payment["pre_aggregations"] == [
+        {
+            "name": "payByMonth",
+            "type": "rollup",
+            "measures": ["payment.count"],
+            "time_dimension": "payment.payment_date",
+            "granularity": "month",
+        }
+    ]
+
+
 def test_auto_complete_reports_ambiguous_multiple_foreign_keys(tmp_path) -> None:
     cube_dir = tmp_path / "cubes"
     cube_dir.mkdir()
@@ -169,6 +361,41 @@ def test_auto_complete_endpoint_requires_postgres_dsn(tmp_path) -> None:
     assert "METISONE_POSTGRES_DSN" in response.json()["detail"]
 
 
+def test_normalize_models_endpoint_does_not_require_postgres_dsn(tmp_path) -> None:
+    from fastapi.testclient import TestClient
+
+    cube_dir = tmp_path / "cubes"
+    cube_dir.mkdir()
+    payment_path = cube_dir / "payment.yml"
+    payment_path.write_text(
+        "\n".join(
+            [
+                "cubes:",
+                "  - name: payment",
+                "    sql_table: public.payment",
+                "    joins: []",
+                "    dimensions: []",
+                "    measures: []",
+                "    pre_aggregations:",
+                "      payByMonth:",
+                "        measures:",
+                "          - payment.count",
+                "        timeDimension: payment.payment_date",
+                "        granularity: month",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    app = create_app(EditServiceConfig(cube_model_dir=cube_dir))
+
+    response = TestClient(app).post("/v1/normalize-models", json={"apply": True})
+
+    assert response.status_code == 200
+    payment = CubeYamlRepository(cube_dir).find_by_cube("payment").data["cubes"][0]
+    assert payment["pre_aggregations"][0]["time_dimension"] == "payment.payment_date"
+
+
 def _dvdrental_metadata() -> SchemaMetadata:
     return SchemaMetadata(
         (
@@ -183,6 +410,19 @@ def _dvdrental_metadata() -> SchemaMetadata:
                     ForeignKeyMetadata("fk_film", ("film_id",), "public", "film", ("film_id",)),
                     ForeignKeyMetadata("fk_category", ("category_id",), "public", "category", ("category_id",)),
                 ),
+            ),
+        )
+    )
+
+
+def _payment_metadata() -> SchemaMetadata:
+    return SchemaMetadata(
+        (
+            TableMetadata(
+                schema="public",
+                name="payment",
+                primary_key=("payment_id",),
+                unique_keys=(("payment_id",),),
             ),
         )
     )

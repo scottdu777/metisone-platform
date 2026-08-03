@@ -35,6 +35,8 @@ from metisone_ai_platform.semantic_edit.service.schemas import (
     JoinCreateRequest,
     MeasureCreateRequest,
     MemberUpdateRequest,
+    NormalizeModelsRequest,
+    PreAggregationCreateRequest,
 )
 from metisone_ai_platform.semantic_edit.service.ui import CHAT_UI_HTML
 
@@ -266,6 +268,54 @@ def create_app(
         result = editor.delete_join(cube, name)
         return EditResponse(**result.__dict__)
 
+    @app.get("/v1/cubes/{cube}/pre-aggregations", dependencies=[auth_dependency])
+    def list_pre_aggregations(cube: str) -> list[dict[str, Any]]:
+        return _list_members(cube, "pre_aggregations")
+
+    @app.post(
+        "/v1/cubes/{cube}/pre-aggregations",
+        response_model=EditResponse,
+        dependencies=[auth_dependency],
+    )
+    def create_pre_aggregation(
+        cube: str,
+        request: PreAggregationCreateRequest,
+    ) -> EditResponse:
+        result = editor.create_pre_aggregation(
+            cube,
+            name=request.name,
+            pre_aggregation_type=request.type,
+            measures=request.measures,
+            dimensions=request.dimensions,
+            segments=request.segments,
+            time_dimension=request.time_dimension,
+            granularity=request.granularity,
+            **request.extra_fields,
+        )
+        return EditResponse(**result.__dict__)
+
+    @app.patch(
+        "/v1/cubes/{cube}/pre-aggregations/{name}",
+        response_model=EditResponse,
+        dependencies=[auth_dependency],
+    )
+    def modify_pre_aggregation(
+        cube: str,
+        name: str,
+        request: MemberUpdateRequest,
+    ) -> EditResponse:
+        result = editor.modify_pre_aggregation(cube, name, **request.fields)
+        return EditResponse(**result.__dict__)
+
+    @app.delete(
+        "/v1/cubes/{cube}/pre-aggregations/{name}",
+        response_model=EditResponse,
+        dependencies=[auth_dependency],
+    )
+    def delete_pre_aggregation(cube: str, name: str) -> EditResponse:
+        result = editor.delete_pre_aggregation(cube, name)
+        return EditResponse(**result.__dict__)
+
     @app.post(
         "/v1/compile",
         response_model=CompileResponse,
@@ -298,6 +348,13 @@ def create_app(
         )
         return asdict(report)
 
+    @app.post("/v1/normalize-models", dependencies=[auth_dependency])
+    def normalize_models(request: NormalizeModelsRequest) -> dict[str, Any]:
+        report = CubeYamlAutoCompleter(repository).normalize_models(
+            apply=request.apply,
+        )
+        return asdict(report)
+
     def _list_members(cube: str, key: str) -> list[dict[str, Any]]:
         document = repository.find_by_cube(cube)
         value = _cube_data(document, cube).get(key)
@@ -323,6 +380,7 @@ def _document_summary(document: CubeYamlDocument) -> dict[str, Any]:
         "measures_count": len(data.get("measures") or []),
         "dimensions_count": len(data.get("dimensions") or []),
         "joins_count": len(data.get("joins") or []),
+        "pre_aggregations_count": len(data.get("pre_aggregations") or []),
     }
 
 

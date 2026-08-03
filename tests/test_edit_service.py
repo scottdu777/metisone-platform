@@ -127,6 +127,50 @@ def test_edit_service_chat_creates_measure(tmp_path) -> None:
     assert record["response"]["success"] is True
 
 
+def test_edit_service_chat_creates_pre_aggregation(tmp_path) -> None:
+    from fastapi.testclient import TestClient
+
+    cube_dir = tmp_path / "cube"
+    cube_dir.mkdir()
+    payment = cube_dir / "payment.yml"
+    payment.write_text(
+        "\n".join(
+            [
+                "cube: payment",
+                "sql_table: public.payment",
+                "measures:",
+                "  - name: count",
+                "    type: count",
+                "dimensions:",
+                "  - name: payment_date",
+                "    sql: payment_date",
+                "    type: time",
+                "pre_aggregations:",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app(EditServiceConfig(cube_model_dir=cube_dir))
+    client = TestClient(app)
+    response = client.post(
+        "/v1/chat",
+        json={
+            "message": (
+                "create pre_aggregation pay_by_month on payment "
+                "measures payment.count time_dimension payment.payment_date "
+                "granularity month"
+            )
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    assert response.json()["command"]["member_kind"] == "pre_aggregation"
+    assert "pay_by_month" in payment.read_text(encoding="utf-8")
+
+
 def test_edit_service_chat_ui_is_available(tmp_path) -> None:
     from fastapi.testclient import TestClient
 
@@ -180,4 +224,58 @@ def test_edit_service_lists_members_from_nested_cube_document(tmp_path) -> None:
     assert [dimension["name"] for dimension in dimensions.json()] == [
         "first_name",
         "last_name",
+    ]
+
+
+def test_edit_service_creates_pre_aggregation(tmp_path) -> None:
+    from fastapi.testclient import TestClient
+
+    cube_dir = tmp_path / "cube"
+    cube_dir.mkdir()
+    payment = cube_dir / "payment.yml"
+    payment.write_text(
+        "\n".join(
+            [
+                "cube: payment",
+                "sql_table: public.payment",
+                "measures:",
+                "  - name: count",
+                "    type: count",
+                "dimensions:",
+                "  - name: payment_date",
+                "    sql: payment_date",
+                "    type: time",
+                "pre_aggregations:",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app(EditServiceConfig(cube_model_dir=cube_dir))
+    client = TestClient(app)
+
+    created = client.post(
+        "/v1/cubes/payment/pre-aggregations",
+        json={
+            "name": "pay_by_month",
+            "measures": ["payment.count"],
+            "time_dimension": "payment.payment_date",
+            "granularity": "month",
+            "extra_fields": {"scheduledRefresh": True},
+        },
+    )
+    listed = client.get("/v1/cubes/payment/pre-aggregations")
+
+    assert created.status_code == 200
+    assert created.json()["member_kind"] == "pre_aggregation"
+    assert listed.json() == [
+        {
+            "name": "pay_by_month",
+            "type": "rollup",
+            "measures": ["payment.count"],
+            "time_dimension": "payment.payment_date",
+            "granularity": "month",
+            "scheduled_refresh": True,
+        }
     ]

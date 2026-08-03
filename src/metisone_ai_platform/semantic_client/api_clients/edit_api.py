@@ -148,6 +148,51 @@ class SemanticEditServiceClient:
     def delete_join(self, cube: str, name: str) -> dict[str, Any]:
         return self._request("DELETE", f"/v1/cubes/{cube}/joins/{name}")
 
+    def list_pre_aggregations(self, cube: str) -> list[dict[str, Any]]:
+        return self._request("GET", f"/v1/cubes/{cube}/pre-aggregations")
+
+    def create_pre_aggregation(
+        self,
+        cube: str,
+        name: str,
+        pre_aggregation_type: str = "rollup",
+        measures: list[str] | None = None,
+        dimensions: list[str] | None = None,
+        segments: list[str] | None = None,
+        time_dimension: str | None = None,
+        granularity: str | None = None,
+        extra_fields: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._request(
+            "POST",
+            f"/v1/cubes/{cube}/pre-aggregations",
+            {
+                "name": name,
+                "type": pre_aggregation_type,
+                "measures": measures or [],
+                "dimensions": dimensions or [],
+                "segments": segments or [],
+                "time_dimension": time_dimension,
+                "granularity": granularity,
+                "extra_fields": extra_fields or {},
+            },
+        )
+
+    def modify_pre_aggregation(
+        self,
+        cube: str,
+        name: str,
+        fields: dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._request(
+            "PATCH",
+            f"/v1/cubes/{cube}/pre-aggregations/{name}",
+            {"fields": fields},
+        )
+
+    def delete_pre_aggregation(self, cube: str, name: str) -> dict[str, Any]:
+        return self._request("DELETE", f"/v1/cubes/{cube}/pre-aggregations/{name}")
+
     def auto_complete(
         self,
         schemas: list[str] | None = None,
@@ -162,6 +207,13 @@ class SemanticEditServiceClient:
                 "apply": apply,
                 "bidirectional_joins": bidirectional_joins,
             },
+        )
+
+    def normalize_models(self, apply: bool = True) -> dict[str, Any]:
+        return self._request(
+            "POST",
+            "/v1/normalize-models",
+            {"apply": apply},
         )
 
     def compile(self) -> dict[str, Any]:

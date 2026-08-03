@@ -5,8 +5,18 @@
       "name": "Debug Semantic Edit YAML Service",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/deployments/semantic_edit_yaml_service/main.py",
+      "module": "uvicorn",
+      "args": [
+        "deployments.semantic_edit_yaml_service.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8088"
+      ],
       "envFile": "${workspaceFolder}/deployments/semantic_edit_yaml_service/.env",
+      "env": {
+        "PYDEVD_USE_SYS_MONITORING": "NO"
+      },
       "console": "integratedTerminal",
       "justMyCode": true
     },
@@ -14,8 +24,18 @@
       "name": "Debug Semantic Client",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/deployments/semantic_client/main.py",
+      "module": "uvicorn",
+      "args": [
+        "metisone_ai_platform.semantic_client.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8090"
+      ],
       "envFile": "${workspaceFolder}/deployments/semantic_client/.env",
+      "env": {
+        "PYDEVD_USE_SYS_MONITORING": "NO"
+      },
       "console": "integratedTerminal",
       "justMyCode": true
     },
@@ -23,9 +43,19 @@
       "name": "Debug Semantic Data Query Service",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/deployments/semantic_data_query_service/main.py",
+      "module": "uvicorn",
+      "args": [
+        "deployments.semantic_data_query_service.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8091"
+      ],
       "envFile": "${workspaceFolder}/deployments/semantic_data_query_service/.env",
       "console": "integratedTerminal",
+      "env": {
+        "PYDEVD_USE_SYS_MONITORING": "NO"
+      },
       "justMyCode": true
     }
   ]
