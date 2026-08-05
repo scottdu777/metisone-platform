@@ -147,6 +147,7 @@ class CubeYamlAutoCompleter:
                 )
                 continue
             self._complete_primary_key(cube_name, cube_data, table, changes, warnings)
+            self._complete_identifier_dimensions(cube_name, cube_data, table, changes, warnings)
             self._ensure_count(cube_name, cube_data, changes)
             if changes and any(change.cube == cube_name for change in changes):
                 dirty_documents.add(str(document.path))
@@ -301,6 +302,51 @@ class CubeYamlAutoCompleter:
                 dimension["primary_key"] = True
                 changes.append(AutoCompleteChange(cube_name, "dimension", str(dimension.get("name")), "set_primary_key"))
 
+    def _complete_identifier_dimensions(
+        self,
+        cube_name: str,
+        cube: dict[str, Any],
+        table: TableMetadata,
+        changes: list[AutoCompleteChange],
+        warnings: list[str],
+    ) -> None:
+        dimensions = cube.setdefault("dimensions", [])
+        if dimensions is None:
+            dimensions = []
+            cube["dimensions"] = dimensions
+        if not isinstance(dimensions, list):
+            warnings.append(f"Cube {cube_name} dimensions is not a list.")
+            return
+
+        existing_columns = {
+            column
+            for item in dimensions
+            if isinstance(item, dict)
+            for column in (self._dimension_column(item),)
+            if column is not None
+        }
+        for column in table.columns:
+            if not self._is_identifier_column(column.name):
+                continue
+            if column.name in existing_columns:
+                continue
+            dimensions.append(
+                {
+                    "name": column.name,
+                    "sql": f"{{CUBE}}.{column.name}",
+                    "type": self._cube_type(column),
+                }
+            )
+            existing_columns.add(column.name)
+            changes.append(
+                AutoCompleteChange(
+                    cube_name,
+                    "dimension",
+                    column.name,
+                    "create_identifier_dimension",
+                )
+            )
+
     def _qualify_member_sql(
         self,
         cube_name: str,
@@ -352,6 +398,10 @@ class CubeYamlAutoCompleter:
         if column.data_type == "boolean":
             return "boolean"
         return "string"
+
+    def _is_identifier_column(self, name: str) -> bool:
+        normalized = name.lower()
+        return normalized == "id" or normalized.endswith("_id")
 
     def _dimension_column(self, dimension: dict[str, Any]) -> str | None:
         sql = dimension.get("sql")

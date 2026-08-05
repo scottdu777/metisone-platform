@@ -113,12 +113,41 @@ class MultiRoundPlanner(SemanticEditPlanner):
         )
 
 
+class PreAggregationFixPlanner(SemanticEditPlanner):
+    def __init__(self) -> None:
+        self.contexts = []
+
+    def plan(self, message, tools, context=None):
+        self.contexts.append(context)
+        if not context.get("observations"):
+            return LLMPlan(
+                tool_calls=[
+                    ToolCall(
+                        name="list_pre_aggregations",
+                        arguments={"cube": "film_category"},
+                    )
+                ],
+                response_hint="Checking existing pre-aggregations.",
+            )
+        return LLMPlan(
+            tool_calls=[
+                ToolCall(name="normalize_models", arguments={"apply": True})
+            ],
+            response_hint="Pre-aggregation YAML format fixed.",
+        )
+
+
 class FakeMCPClient(MCPClient):
     def __init__(self) -> None:
         self.calls = []
 
     def list_tools(self):
-        return [{"name": "list_cubes"}, {"name": "create_measure"}]
+        return [
+            {"name": "list_cubes"},
+            {"name": "create_measure"},
+            {"name": "list_pre_aggregations"},
+            {"name": "normalize_models"},
+        ]
 
     def call_tool(self, call):
         self.calls.append(call)
@@ -131,6 +160,17 @@ class FakeMCPClient(MCPClient):
                 data=[
                     {"name": "first_name", "sql": "first_name", "type": "string"},
                     {"name": "last_name", "sql": "last_name", "type": "string"},
+                ],
+            )
+        if call.name == "list_pre_aggregations":
+            return ToolResult(
+                name=call.name,
+                success=True,
+                data=[
+                    {
+                        "name": "main",
+                        "measures": ["film_category.count"],
+                    }
                 ],
             )
         return ToolResult(name=call.name, success=True, data={"success": True})
@@ -266,3 +306,21 @@ def test_local_llm_agent_replans_after_read_only_tool() -> None:
     assert result["tool_calls"][0]["name"] == "list_dimensions"
     assert result["tool_calls"][1]["name"] == "create_dimension"
     assert planner.contexts[1]["observations"][0]["data"][0]["name"] == "first_name"
+
+
+def test_local_llm_agent_replans_after_listing_pre_aggregations() -> None:
+    planner = PreAggregationFixPlanner()
+    mcp_client = FakeMCPClient()
+    agent = LocalLLMSemanticEditAgent(planner=planner, mcp_client=mcp_client)
+
+    result = agent.handle("please fix pre-aggregation in film_category model")
+
+    assert result["success"] is True
+    assert [call.name for call in mcp_client.calls] == [
+        "list_cubes",
+        "list_pre_aggregations",
+        "normalize_models",
+    ]
+    assert result["tool_calls"][0]["name"] == "list_pre_aggregations"
+    assert result["tool_calls"][1]["name"] == "normalize_models"
+    assert result["message"] == "Pre-aggregation YAML format fixed."

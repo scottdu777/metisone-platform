@@ -17,6 +17,7 @@ READ_ONLY_TOOLS = {
     "list_measures",
     "list_dimensions",
     "list_joins",
+    "list_pre_aggregations",
 }
 
 

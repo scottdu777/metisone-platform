@@ -15,9 +15,9 @@ class FakeRemoteClient:
 
 class FakeQueryServiceClient:
     def query(self, question, limit=100):
-        assert question == "Action 类型有多少部电影？"
+        assert question == "How many action movies are there?"
         return {
-            "answer": "查询结果：64",
+            "answer": "There are 4 action movies.",
             "plan": {"cube_query": {"measures": ["film_category.films_count"]}},
         }
 
@@ -53,8 +53,8 @@ def test_local_chat_ui_is_available() -> None:
 
     assert response.status_code == 200
     assert "MetisOne Semantic Client" in response.text
-    assert "查询数据" in response.text
-    assert "编辑模型" in response.text
+    assert "Query Data" in response.text
+    assert "Edit Model" in response.text
 
 
 def test_semantic_client_returns_only_a_concise_query_message() -> None:
@@ -63,12 +63,12 @@ def test_semantic_client_returns_only_a_concise_query_message() -> None:
     client = TestClient(create_app(query_client=FakeQueryServiceClient()))
     response = client.post(
         "/local-chat",
-        json={"mode": "query", "message": "Action 类型有多少部电影？"},
+        json={"mode": "query", "message": "How many action movies are there?"},
     )
 
     assert response.status_code == 200
     assert response.json() == {
         "success": True,
         "mode": "query",
-        "message": "查询结果：64",
+        "message": "There are 4 action movies.",
     }

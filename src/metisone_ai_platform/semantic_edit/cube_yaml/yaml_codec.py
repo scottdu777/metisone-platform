@@ -45,6 +45,7 @@ class YamlCodec:
         if self._ruamel_yaml is not None:
             import io
 
+            self._force_block_style(data)
             stream = io.StringIO()
             self._ruamel_yaml.dump(data, stream)
             return stream.getvalue()
@@ -58,6 +59,16 @@ class YamlCodec:
             )
 
         return self._dump_simple(data)
+
+    def _force_block_style(self, value: Any) -> None:
+        if hasattr(value, "fa"):
+            value.fa.set_block_style()
+        if isinstance(value, dict):
+            for child in value.values():
+                self._force_block_style(child)
+        elif isinstance(value, list):
+            for child in value:
+                self._force_block_style(child)
 
     def _load_simple(self, text: str) -> dict[str, Any]:
         root: dict[str, Any] = {}

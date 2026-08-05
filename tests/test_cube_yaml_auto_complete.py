@@ -98,6 +98,59 @@ def test_auto_complete_creates_primary_key_dimension_omitted_by_cube(tmp_path) -
     assert any(change.action == "create_primary_key" for change in report.changes)
 
 
+def test_auto_complete_creates_missing_identifier_dimensions(tmp_path) -> None:
+    cube_dir = tmp_path / "cubes"
+    cube_dir.mkdir()
+    _write_cube(cube_dir, "rental", ["rental_id", "rental_date", "return_date"])
+    metadata = SchemaMetadata(
+        (
+            TableMetadata(
+                schema="public",
+                name="rental",
+                primary_key=("rental_id",),
+                unique_keys=(("rental_id",),),
+                columns=(
+                    ColumnMetadata("rental_id", "integer", "int4"),
+                    ColumnMetadata("rental_date", "timestamp without time zone", "timestamp"),
+                    ColumnMetadata("inventory_id", "integer", "int4"),
+                    ColumnMetadata("customer_id", "integer", "int4"),
+                    ColumnMetadata("return_date", "timestamp without time zone", "timestamp"),
+                    ColumnMetadata("staff_id", "integer", "int4"),
+                    ColumnMetadata("last_update", "timestamp without time zone", "timestamp"),
+                ),
+            ),
+        )
+    )
+
+    report = CubeYamlAutoCompleter(CubeYamlRepository(cube_dir)).complete(
+        metadata,
+        apply=True,
+    )
+
+    rental = CubeYamlRepository(cube_dir).find_by_cube("rental").data["cubes"][0]
+    assert _dimension(rental, "rental_id")["primary_key"] is True
+    assert _dimension(rental, "inventory_id") == {
+        "name": "inventory_id",
+        "sql": "{CUBE}.inventory_id",
+        "type": "number",
+    }
+    assert _dimension(rental, "customer_id") == {
+        "name": "customer_id",
+        "sql": "{CUBE}.customer_id",
+        "type": "number",
+    }
+    assert _dimension(rental, "staff_id") == {
+        "name": "staff_id",
+        "sql": "{CUBE}.staff_id",
+        "type": "number",
+    }
+    assert any(
+        change.action == "create_identifier_dimension"
+        and change.name == "customer_id"
+        for change in report.changes
+    )
+
+
 def test_auto_complete_qualifies_measure_columns_for_joined_queries(tmp_path) -> None:
     cube_dir = tmp_path / "cubes"
     cube_dir.mkdir()
