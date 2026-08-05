@@ -56,16 +56,9 @@ Now I want to talk about why I started this project.
 
 I have worked in the BI industry for many years, and I noticed one common problem.
 
-Most BI products are very powerful, but they are also too complex. They come with a lot of features, a lot of configuration options, and a lot of screens.
+Many BI systems look very powerful, but most users use less than 30 percent of the features, while still paying for 100 percent of the product.
 
-But in real projects, each customer may only use 20 or 30 percent of the product. The rest is rarely used.
-
-The problem is, customers still have to learn it, manage it, and pay for it.
-That is not very friendly for small and mid-sized companies. Many of them only need the basic features: building a model, asking questions, and getting useful answers.
-
-Why does this happen?
-
-Because every customer has slightly different needs.
+And customers often have special requests.
 
 For example, one customer may want charts with rounded corners, while another customer wants square corners.
 
@@ -81,7 +74,7 @@ That is feature creep.
 
 At one of my previous companies, we had almost 20 different types of filters and three different types of dashboards.
 
-Many of them were doing almost the same job.
+Many of them were doing almost the same job. 
 
 That felt wrong to me.
 
