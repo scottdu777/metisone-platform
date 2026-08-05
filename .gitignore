@@ -4,6 +4,7 @@
 !.env.example
 !**/.env.example
 sn.txt
+YOUTUBE_SCRIPT.md
 
 # Virtual environments and local installs
 .venv/
